@@ -1,0 +1,15 @@
+import torch
+
+n = 28
+img = torch.tensor(list(range(n)))
+img = img.unsqueeze(0)
+img = img.expand(n,n)
+img = img + n*torch.tensor(list(range(n))).unsqueeze(1)
+print(img)
+img = torch.tensor_split(img, 4, dim=1)
+print(img)
+img = torch.stack(img)
+img = torch.tensor_split(img, 4, dim=1)
+img = torch.stack(img)
+img = img.flatten(start_dim=0, end_dim=1)
+print(img)
