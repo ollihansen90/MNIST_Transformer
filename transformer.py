@@ -93,7 +93,7 @@ class VisualTransformer(nn.Module):
         self.class_token = nn.Parameter(torch.randn(1, 1, inner_dim))
         self.pos_emb = nn.Parameter(torch.randn(1, 16+1, inner_dim))
         
-        self.transfomer = Transformer() # TODO: Parameter
+        self.transfomer = Transformer(dim=inner_dim) # TODO: Parameter
         self.dropout = nn.Dropout(p=0.5)
 
     def forward(self, img):
