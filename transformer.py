@@ -21,13 +21,13 @@ from patchify import patchify
         return x
 """
 class MLP(nn.Module):
-    def __init__(self, dim, hidden_dim, dropout=0):
+    def __init__(self, in_dim=49, hidden_dim=64, dropout=0.0):
         super(MLP, self).__init__()
         self.linear = nn.Sequential(
-            nn.Linear(dim, hidden_dim),
+            nn.Linear(in_dim, hidden_dim),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden_dim, dim),
+            nn.Linear(hidden_dim, in_dim),
             nn.Dropout(dropout)
         )
 
@@ -42,7 +42,7 @@ class Attention(nn.Module):
         self.scale = dim_head**-0.5
 
         self.sftmx = nn.Softmax(dim=-1)
-        self.to_qkf = nn.Linear(dim, inner_dim*3, bias=False)
+        self.to_qkv = nn.Linear(dim, inner_dim*3, bias=False)
 
         self.out = nn.Sequential(
             nn.Linear(inner_dim, dim),
@@ -50,43 +50,60 @@ class Attention(nn.Module):
         )
 
     def forward(self, x):
-        # TODO
-        b, n, _ = x.shape
-        return x
+        q, k, v = self.to_qkv(x).chunk(3, dim=-1)
+        dots = torch.matmul(q, k.transpose(-1, -2))*self.scale
+        attn = self.sftmx(dots)
+        out = torch.matmul(attn, v)
 
-class Normlayer(nn.Module):
-    def __init__(self):
-        super(Normlayer, self).__init__()
+        return out
+
+class PreNorm(nn.Module):
+    def __init__(self, dim, func):
+        super(PreNorm, self).__init__()
         self.norm = nn.Layernorm()
+        self.func = func
 
-    def forward(self, x):
-        out = x+self.norm(x)
+    def forward(self, x, **kwargs):
+        out = self.func(self.norm(x), **kwargs)
         return out
 
 class Transformer(nn.Module):
-    def __init__(self):
+    def __init__(self, dim, depth=3, heads=8, dim_head=64, mlp_dim=128, dropout=0.0):
         super(Transformer, self).__init__()
-        # TODO
+        self.layers = nn.ModuleList([])
+        for _ in range(depth):
+            self.layers.append(nn.ModuleList([
+                PreNorm(dim, Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout)),
+                PreNorm(dim, MLP(in_dim=dim, hidden_dim=mlp_dim, dropout=dropout))
+            ]))
 
     def forward(self, x):
-        # TODO
+        for attention, mlp in self.layers:
+            x = attention(x)+x
+            x = mlp(x)+x
         return x
 
 class VisualTransformer(nn.Module):
-    def __init__(self):
+    def __init__(self, inner_dim=49*2):
         super(VisualTransformer, self).__init__()
-        self.projector = MLP(dim=49, hidden_dim=49*2, dropout=0.5)
-        self.class_token = nn.Parameter(torch.randn(1, 1, 49))
-        self.pos_emb = nn.Parameter(torch.randn(1, 16+1, 49))
-        self.normlayer = Normlayer()
+        self.inner_dim = inner_dim
+        self.projector = nn.Linear(49, inner_dim) # hier stimmt die 49
+        self.outMLP = nn.Linear(inner_dim, 10) # inner_dim auf 10 Klassen (da 10 Ziffern)
+        
+        self.class_token = nn.Parameter(torch.randn(1, 1, inner_dim))
+        self.pos_emb = nn.Parameter(torch.randn(1, 16+1, inner_dim))
+        
         self.transfomer = Transformer() # TODO: Parameter
-
-        self.dropout = nn.Dropout()
+        self.dropout = nn.Dropout(p=0.5)
 
     def forward(self, img):
-        x = patchify(img)
-        x = self.projector(x)
-        x = 
-        x = self.normlayer(x)
+        # b, _, _ = img.shape # b ist die Batchsize (später)
+        x = patchify(img) # x ist jetzt ein "Stapel" von Matrizen mit zeilenweise geflatteten Patches
+        x = self.projector(x) # Kann der mit dem Patches arbeiten? nn.Linear müsste eigentlich mit der letzten Dimension arbeiten (y)
+        x = torch.cat((self.class_token, x), dim=-2) # hier fehlt später noch die Batchsize b mit repeat oder sowas
+        x += self.pos_emb                               # hier auch
+        x = self.transfomer(x)  # das hier funktioniert noch überhaupt nicht
+        x = self.outMLP(x)
+        # hier fehlt vermutlich noch ein Softmax oder sowas
 
         return x
