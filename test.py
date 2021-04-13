@@ -1,19 +1,26 @@
 import torch
+import torch.nn as nn
+from transformer import Attention
+from torch.utils.data import Dataset
+from dataset import MNIST_data
+import matplotlib.pyplot as plt
+from datetime import datetime as dt
+from patchify import patchify
 
-n = 4
-img = torch.tensor(list(range(n)))
-img = img.unsqueeze(0)
-img = img.expand(n,n)
-img = img + n*torch.tensor(list(range(n))).unsqueeze(1) + 1
-print(1, img.t().flatten())
+inner_dim = 2*49
+projector = nn.Linear(49, inner_dim)
+att = Attention(dim=inner_dim, heads=1, dim_head=98)
+#img = 1
+dataset = MNIST_data(labels=[1,3,0])
+print(len(dataset))
+img = dataset[50]
+
+img = patchify(img)
+img = projector(img)
+img = att(img)
+print(img.shape)
 
 
-"""img = torch.tensor_split(img, 2, dim=-1)
-img = torch.stack(img, dim=-1)
-print(2, img)
-img = torch.tensor_split(img, 2, dim=-2)
-img = torch.stack(img, dim=-1)
-print(3, img.shape)
-img = img.flatten(start_dim=-4, end_dim=-3)
-print(4, img)"""
-
+"""plt.figure()
+plt.imshow(img)
+plt.savefig("plots/"+str(round(dt.now().timestamp()))+".png")"""

@@ -50,11 +50,15 @@ class Attention(nn.Module):
         )
 
     def forward(self, x):
+        #print("x", x.shape)
         q, k, v = self.to_qkv(x).chunk(3, dim=-1)
+        #print("q", q.shape, "k", k.shape, "v", v.shape)
         dots = torch.matmul(q, k.transpose(-1, -2))*self.scale
+        #print("dots", dots.shape)
         attn = self.sftmx(dots)
-        out = torch.matmul(attn, v)
-
+        #print("attn", attn.shape)
+        out = torch.matmul(attn.transpose(-2,-1), v)
+        #print("out", out.shape)
         return out
 
 class PreNorm(nn.Module):
