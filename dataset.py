@@ -12,15 +12,17 @@ class MNIST_data(Dataset):
         self.all_imgs = []
         for i in labels:
             self.all_imgs += map(lambda bla: self.all_folders[i]+bla, os.listdir(self.all_folders[i]))
+        self.num_classes = len(labels)
     
     def __len__(self):
         return len(self.all_imgs)
 
     def __getitem__(self, idx):
         imgloc = self.all_imgs[idx]
-        img = Image.open(imgloc).convert("L") # https://pillow.readthedocs.io/en/stable/handbook/concepts.html#concept-modes
+        label = int(imgloc.split("/")[-2])
+        img = Image.open(imgloc).convert("L") # L ist ein Concept Mode: https://pillow.readthedocs.io/en/stable/handbook/concepts.html#concept-modes
         img = transforms.ToTensor()(img)
-        return img
+        return {"image": img, "label": label}
         #img = torch.tensor(list(Image.open(imgloc)), dtype=torch.float)
         #return img
     
