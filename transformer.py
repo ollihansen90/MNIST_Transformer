@@ -3,24 +3,6 @@ from torch import nn
 from torch.nn.functional import softmax
 from patchify import patchify
 
-"""class PatchEmbed(nn.Module):
-    def __init__(self, img_size=28, patch_size=7, in_chans=1, embed_dim=64):
-        super(PatchEmbed, self).__init__()
-        self.img_size = img_size
-        self.patch_size = patch_size
-        self.n_patches = (img_size//patch_size)**2
-        
-        self.projection = nn.Conv2d(
-            in_chans, embed_dim, 
-            kernel_size=patch_size, stride=patch_size
-        )
-
-    def forward(self, x):
-        x = self.projection(x)
-        x = x.flatten(2)
-        x = x.transpose(1,2)
-        return x
-"""
 class MLP(nn.Module):
     def __init__(self, in_dim=49, hidden_dim=64, dropout=0.0):
         super(MLP, self).__init__()
@@ -88,29 +70,42 @@ class Transformer(nn.Module):
         return x
 
 class VisualTransformer(nn.Module):
-    def __init__(self, inner_dim=49*2, num_classes=10):
+    def __init__(
+                    self, 
+                    inner_dim=49*2, 
+                    transformer_depth=3, # Größe des Stapels an Transformern (werden nacheinander durchiteriert)
+                    attn_heads=8, # Anzahl Attention Heads
+                    dim_head=64, # eigene Dimension für Attention
+                    mlp_dim=128, # Dimension des MLPs im Transformer
+                    num_classes=10 # Anzahl Klassen (max=10)
+                ):
         super(VisualTransformer, self).__init__()
-        self.inner_dim = inner_dim
         self.projector = nn.Linear(49, inner_dim) # hier stimmt die 49
         
         self.class_token = nn.Parameter(torch.randn(1, 1, 1, inner_dim))
         self.pos_emb = nn.Parameter(torch.randn(1, 1, 16+1, inner_dim))
         
-        self.transfomer = Transformer(dim=inner_dim) # TODO: Parameter
+        self.transfomer = Transformer(dim=inner_dim, depth=transformer_depth, heads=attn_heads, dim_head=dim_head, mlp_dim=mlp_dim) # TODO: Parameter
         self.dropout = nn.Dropout(p=0.5)
-        self.outMLP = nn.Linear(inner_dim, num_classes) # inner_dim auf 10 Klassen (da 10 Ziffern)
-
+        self.outMLP = nn.Sequential(
+            nn.LayerNorm(inner_dim),
+            nn.Linear(inner_dim, num_classes) # inner_dim auf 10 Klassen (da 10 Ziffern)
+        )
     def forward(self, img):
         while len(img.shape)<4:
             img = img.unsqueeze(0)
         b, *_ = img.shape # b ist die Batchsize (später)
+        
         x = patchify(img) # x ist jetzt ein "Stapel" von Matrizen mit zeilenweise geflatteten Patches
-        x = self.projector(x) # Kann der mit dem Patches arbeiten? nn.Linear müsste eigentlich mit der letzten Dimension arbeiten (y)
+        #print(x.shape)
+        x = self.projector(x)
+
         cls_token = self.class_token.repeat([b,1,1,1])
         pos_emb = self.class_token.repeat([b,1,1,1])
-        x = torch.cat((cls_token, x), dim=-2) # hier fehlt später noch die Batchsize b mit repeat oder sowas
-        x += pos_emb                               # hier auch
-        #x = x.repeat([1,b,1,1])
+        x = torch.cat((cls_token, x), dim=-2)
+        x += pos_emb
+        x = self.dropout(x)
+        
         x = self.transfomer(x)
         #print("Transformer-Output", x.shape)
         x = self.outMLP(x).mean(dim=-2)
