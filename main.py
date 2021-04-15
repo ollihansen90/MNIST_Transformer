@@ -13,12 +13,12 @@ model = VisualTransformer(inner_dim=49*2, num_classes=len(labellist)).to(device)
 dataset = MNIST_data(labels=labellist)
 dataloader = Dataloader(dataset, labels=labellist)
 
-lr = 1e-3
+lr = 1e-5
 betas = (0.9, 0.999)
 optimizer = torch.optim.Adam(model.parameters(), lr=lr, betas=betas)#.to(device)
 batch_size = 32
 
-n_epochs = 10_000
+n_epochs = 100_000
 lossliste = torch.zeros(n_epochs).to(device)
 entropieliste = torch.zeros(n_epochs).to(device)
 
@@ -48,3 +48,5 @@ plt.savefig("plots/plot_{}.png".format(round(dt.now().timestamp())))
 plt.figure()
 plt.plot(entropieliste.cpu(), "b.")
 plt.savefig("plots/plot_{}_H.png".format(round(dt.now().timestamp())))
+
+torch.save(model, "models/model.pt")

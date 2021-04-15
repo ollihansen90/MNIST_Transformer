@@ -1,1 +1,1 @@
-docker run --gpus all --name dl -it --rm -v $(pwd):/workingdir -v $HOME:/data --user $(id -u):$(id -g) dl_workingdir_hohansen python3 patchify.py
+docker run --gpus all --name dl -it --rm -v $(pwd):/workingdir -v $HOME:/data --user $(id -u):$(id -g) dl_workingdir_hohansen python3 confusion.py
