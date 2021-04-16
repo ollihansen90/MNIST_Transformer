@@ -1,4 +1,4 @@
-import torch
+"""import torch
 import torch.nn as nn
 from transformer import VisualTransformer
 from dataset import MNIST_data
@@ -27,7 +27,12 @@ img = vit(batch)
 print(img)
 #print(label)
 
-
+"""
 """plt.figure()
 plt.imshow(img)
 plt.savefig("plots/"+str(round(dt.now().timestamp()))+".png")"""
+
+import torch
+import torchvision
+print(torch.__version__)
+print(torchvision.__version__)

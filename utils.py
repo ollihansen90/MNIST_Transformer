@@ -91,11 +91,5 @@ def tinify(img, maxval):
 def reshapeimg(img):
     i,j = img.shape[2], img.shape[3]
     return img[:, :, :int(i/2)*2, :int(j/2)*2]
-"""def getfulllist():
-    path = "DIPGAN-Bilder"
-    liste1 = os.listdir(path)
-    for entry in liste1:
-        path1 = path+"/"+entry
-        if "Epoch" in entry:
-            for 
-    return sorted(pathlist)"""
+
+#def label2labelmat(labels):

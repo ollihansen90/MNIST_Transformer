@@ -106,9 +106,10 @@ class VisualTransformer(nn.Module):
         x += pos_emb
         x = self.dropout(x)
         
-        x = self.transfomer(x)
-        #print("Transformer-Output", x.shape)
-        x = self.outMLP(x).mean(dim=-2)
+        x = self.transfomer(x)#[:,:,0]
+        print("Transformer-Output", x.shape)
+        x = x.mean(dim=-2)
+        x = self.outMLP(x)
         # hier fehlt vermutlich noch ein Softmax oder sowas
         x = softmax(x, dim=-1)
 

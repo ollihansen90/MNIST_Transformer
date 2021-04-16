@@ -1,0 +1,40 @@
+von Marius Jahrens an alle:    4:27 PM
+train_set = dset.CIFAR10(root=root, train=True, transform=train_trans, download=True)
+von Marius Jahrens an alle:    4:27 PM
+import torchvision.datasets as dset
+
+train_loader = DataLoader(
+                    dataset=train_set, #DatasetWithIndex(train_set),
+                    batch_size=batch_size,
+                    sampler=train_sampler, 
+                    num_workers=num_workers,
+                    pin_memory=True)
+
+von Marius Jahrens an alle:    4:28 PM
+train_idx, valid_idx = indices[split:], indices[:split]
+    train_sampler = SubsetRandomSampler(train_idx)
+von Marius Jahrens an alle:    4:28 PM
+from torch.utils.data.sampler import SubsetRandomSampler
+von Marius Jahrens an alle:    4:29 PM
+for batch_idx, (x, target) in enumerate(train_loader):
+
+von Marius Jahrens an alle:    4:37 PM
+from torch.utils.tensorboard import SummaryWriter
+von Marius Jahrens an alle:    4:37 PM
+class TBScalar:
+    def __init__(self, parent_logger, name):
+        self.logger = parent_logger
+        self.name = name
+    def append(self, value, global_step):
+        self.logger.writer.add_scalar(self.name, value, global_step)
+class TBLogger:
+    def __init__(self, logdir="log"):
+        self.writer = SummaryWriter(logdir)
+    def new_scalar(self, name):
+        return TBScalar(self, name)
+von Marius Jahrens an alle:    4:37 PM
+logger = TBLogger(logdir)
+von Marius Jahrens an alle:    4:37 PM
+architect_loss_log = logger.new_scalar('architect_loss')
+von Marius Jahrens an alle:    4:37 PM
+architect_loss_log.append(architect_loss_accum, i * world_size)
