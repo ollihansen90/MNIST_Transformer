@@ -14,10 +14,11 @@ from datetime import datetime as dt
 device = "cuda" if torch.cuda.is_available() else "cpu"
 plotstuff = 1
 savemodel = 1
+starttime = dt.now().timestamp()
 
 #labellist = [3,4,7]
 labellist = list(range(10))
-model = VisualTransformer(inner_dim=49*2, num_classes=len(labellist)).to(device)
+model = VisualTransformer(inner_dim=20, num_classes=len(labellist)).to(device)
 #dataset = MNIST_data(labels=labellist)
 #dataloader = Dataloader(dataset, labels=labellist)
 dataset = dset.MNIST(
@@ -26,14 +27,14 @@ dataset = dset.MNIST(
     transform=transforms.Compose([transforms.ToTensor()]),
     download=True
 )
-dataloader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=True)
+batch_size = 2048
+dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
 lr = 1e-3
 betas = (0.9, 0.999)
 optimizer = torch.optim.Adam(model.parameters(), lr=lr, betas=betas)
-batch_size = 32
 
-n_epochs = 5
+n_epochs = 650
 lossliste = torch.zeros(n_epochs).to(device)
 entropieliste = torch.zeros(n_epochs).to(device)
 
@@ -68,7 +69,7 @@ for epoch in range(n_epochs):
         total_loss += loss.item()
 
     lossliste[epoch] = total_loss
-    print("epoch", epoch, "| loss:", total_loss, "| time:", dt.now().timestamp()-epochstart)
+    print("epoch", epoch, "\t| loss:", total_loss, "\t| time:", dt.now().timestamp()-epochstart, "\t| time total:", dt.now().timestamp()-starttime)
 
 if plotstuff:
     plt.figure()

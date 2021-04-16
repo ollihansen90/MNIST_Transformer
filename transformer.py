@@ -33,6 +33,7 @@ class Attention(nn.Module):
         )
 
     def forward(self, x):
+        x = x.unsqueeze(-3)
         q, k, v = self.to_qkv(x).chunk(3, dim=-1)
         q = torch.cat(q.chunk(self.heads, dim=-1), dim=-3)
         k = torch.cat(k.chunk(self.heads, dim=-1), dim=-3)
@@ -40,7 +41,7 @@ class Attention(nn.Module):
         dots = torch.matmul(q, k.transpose(-1, -2))*self.scale
         attn = self.sftmx(dots)
         out = torch.matmul(attn.transpose(-2,-1), v)
-        out = out.transpose(-3,-2).flatten(start_dim=-2, end_dim=-1).unsqueeze(-3)
+        out = out.transpose(-3,-2).flatten(start_dim=-2, end_dim=-1).squeeze()
         return self.out(out)
 
 class PreNorm(nn.Module):
@@ -82,8 +83,8 @@ class VisualTransformer(nn.Module):
         super(VisualTransformer, self).__init__()
         self.projector = nn.Linear(49, inner_dim) # hier stimmt die 49
         
-        self.class_token = nn.Parameter(torch.randn(1, 1, 1, inner_dim))
-        self.pos_emb = nn.Parameter(torch.randn(1, 1, 16+1, inner_dim))
+        self.class_token = nn.Parameter(torch.randn(1, 1, inner_dim))
+        self.pos_emb = nn.Parameter(torch.randn(1, 16+1, inner_dim))
         
         self.transfomer = Transformer(dim=inner_dim, depth=transformer_depth, heads=attn_heads, dim_head=dim_head, mlp_dim=mlp_dim) # TODO: Parameter
         self.dropout = nn.Dropout(p=0.5)
@@ -100,15 +101,16 @@ class VisualTransformer(nn.Module):
         #print(x.shape)
         x = self.projector(x)
 
-        cls_token = self.class_token.repeat([b,1,1,1])
-        pos_emb = self.class_token.repeat([b,1,1,1])
+        cls_token = self.class_token.repeat([b,1,1])
+        pos_emb = self.class_token.repeat([b,1,1])
         x = torch.cat((cls_token, x), dim=-2)
         x += pos_emb
         x = self.dropout(x)
         
-        x = self.transfomer(x)#[:,:,0]
-        print("Transformer-Output", x.shape)
-        x = x.mean(dim=-2)
+        x = self.transfomer(x)[:,0]
+        #print("Transformer-Output", x.shape)
+        #x = x.mean(dim=-2)
+        #print("Transformer-Output", x.shape)
         x = self.outMLP(x)
         # hier fehlt vermutlich noch ein Softmax oder sowas
         x = softmax(x, dim=-1)

@@ -15,7 +15,7 @@ def patchify(img, n_patches_x=4, n_patches_y=4):
     img = img.flatten(start_dim=-2, end_dim=-1)
     #print("hier", img.shape)
     #img = img.flatten(start_dim=-4, end_dim=-3)
-    return img
+    return img.squeeze()
 
 def buildgrid():
     n = 4

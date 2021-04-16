@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from datetime import datetime as dt
 
-model = torch.load("models/model_3.pt").cpu().eval()
+model = torch.load("models/model.pt").cpu().eval()
 dataset = MNIST_data()
 dataloader = Dataloader(dataset)
 
