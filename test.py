@@ -33,6 +33,16 @@ plt.imshow(img)
 plt.savefig("plots/"+str(round(dt.now().timestamp()))+".png")"""
 
 import torch
-import torchvision
-print(torch.__version__)
-print(torchvision.__version__)
+import torch.nn.functional as F
+
+input = torch.tensor([[1,0,0,0,0],
+                    [0,0,1,0,0],
+                    [1,0,0,0,0]
+                    ], dtype=torch.float)
+target = torch.randint(5, (3,), dtype=torch.int64)
+loss = F.cross_entropy(input, target)
+print(torch.argmax(input, dim=-1))
+
+print(input)
+print(target)
+print(loss)

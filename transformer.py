@@ -81,6 +81,7 @@ class VisualTransformer(nn.Module):
                     num_classes=10 # Anzahl Klassen (max=10)
                 ):
         super(VisualTransformer, self).__init__()
+        print("num_classes", num_classes)
         self.projector = nn.Linear(49, inner_dim) # hier stimmt die 49
         
         self.class_token = nn.Parameter(torch.randn(1, 1, inner_dim))

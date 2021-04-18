@@ -1,10 +1,8 @@
 .vscode/
 __pycache__/
-data/
-data2/
+datasets/
 plots/
-raw/
-/models
+models/
 history.txt
 DEADJOE
 
