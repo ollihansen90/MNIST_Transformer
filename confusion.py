@@ -7,14 +7,15 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from datetime import datetime as dt
 
-model = torch.load("models/model_1618740032.pt").cpu().eval()
+model = torch.load("models/model.pt").cpu().eval()
 for param in model.parameters():
     print(param.shape)
 """dataset = MNIST_data()
 dataloader = Dataloader(dataset)"""
 dataset = dset.EMNIST(
     root="datasets",
-    split="balanced",
+    split="byclass",
+    #split="balancec",
     train=True,
     transform=transforms.Compose([transforms.ToTensor()]),
     download=True

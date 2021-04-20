@@ -18,7 +18,7 @@ class MLP(nn.Module):
         return self.linear(x)
 
 class Attention(nn.Module):
-    def __init__(self, dim, heads=8, dim_head=64, dropout=0):
+    def __init__(self, dim, heads=8, dim_head=64, dropout=0.):
         super(Attention, self).__init__()
         inner_dim = dim_head*heads
         self.heads = heads
@@ -55,7 +55,7 @@ class PreNorm(nn.Module):
         return out
 
 class Transformer(nn.Module):
-    def __init__(self, dim, depth=3, heads=8, dim_head=64, mlp_dim=128, dropout=0.0):
+    def __init__(self, dim, depth=8, heads=8, dim_head=64, mlp_dim=128, dropout=0.0):
         super(Transformer, self).__init__()
         self.layers = nn.ModuleList([])
         for _ in range(depth):
@@ -74,7 +74,7 @@ class VisualTransformer(nn.Module):
     def __init__(
                     self, 
                     inner_dim=49*2, 
-                    transformer_depth=3, # Größe des Stapels an Transformern (werden nacheinander durchiteriert)
+                    transformer_depth=5, # Größe des Stapels an Transformern (werden nacheinander durchiteriert)
                     attn_heads=8, # Anzahl Attention Heads
                     dim_head=64, # eigene Dimension für Attention
                     mlp_dim=128, # Dimension des MLPs im Transformer
@@ -87,7 +87,13 @@ class VisualTransformer(nn.Module):
         self.class_token = nn.Parameter(torch.randn(1, 1, inner_dim))
         self.pos_emb = nn.Parameter(torch.randn(1, 16+1, inner_dim))
         
-        self.transfomer = Transformer(dim=inner_dim, depth=transformer_depth, heads=attn_heads, dim_head=dim_head, mlp_dim=mlp_dim) # TODO: Parameter
+        self.transfomer = Transformer(
+                            dim=inner_dim, 
+                            depth=transformer_depth, 
+                            heads=attn_heads, 
+                            dim_head=dim_head, 
+                            mlp_dim=mlp_dim
+                        ) 
         self.dropout = nn.Dropout(p=0.5)
         self.outMLP = nn.Sequential(
             nn.LayerNorm(inner_dim),
