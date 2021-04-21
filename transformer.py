@@ -17,6 +17,18 @@ class MLP(nn.Module):
     def forward(self, x):
         return self.linear(x)
 
+class rConv2d(nn.Module):
+    def __init__(self, n_x=7, n_y=7, n_c=1):
+        super(rConv2d, self).__init__()
+        self.n_c, self.n_x, self.n_y = n_c, n_x, n_y
+        self.conv = nn.Conv2d(3, 3, kernel_size=3, padding=1, padding_mode="reflect", groups=3)
+
+    def forward(self, x):
+        x = x.unsqueeze(-1)
+        x = x.view(-1, self.n_c, self.n_x, self.n_y)
+        print(x.shape)
+        return self.conv(x).flatten(start_dim=-2, end_dim=-1)
+
 class Attention(nn.Module):
     def __init__(self, dim, heads=8, dim_head=64, dropout=0.):
         super(Attention, self).__init__()

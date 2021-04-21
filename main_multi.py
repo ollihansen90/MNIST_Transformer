@@ -49,13 +49,15 @@ betas = (0.9, 0.999)
 
 n_epochs = 100
 
-params = [31, 62, 2*62]
+params = [62*3, 62*4]
+#modelnames = ["model_1618945656", "model_1618953307", "model_1618960953"]
 lossliste = torch.zeros(len(params), n_epochs).to(device)
 accliste_train = torch.zeros(len(params), n_epochs).to(device)
 accliste_test = torch.zeros(len(params), n_epochs).to(device)
 for param_idx, p in enumerate(params):
     starttime = dt.now().timestamp()
     model = VisualTransformer(inner_dim=p, transformer_depth=3, num_classes=num_classes).to(device)
+    #model = torch.load("models/"+modelnames[param_idx]+".pt")
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, betas=betas)
     print(sum([params.numel() for params in model.parameters()]))
     print("Transformer Depth:", p)
@@ -100,14 +102,14 @@ for param_idx, p in enumerate(params):
         lossliste[param_idx, epoch-start_epoch] = total_loss.item()
         plottime = dt.now().timestamp()
         line = "{}. epoch {}\t| acc: {}, {}\t|  loss: {}\t| time: {} \t| time total: {}\t{}".format(
-                param_idx+1,
+                str(param_idx+1).rjust(3),
                         epoch, 
-                                round(acc_train, 4),
-                                        round(acc_test, 4), 
-                                                    round(total_loss.item(),3), 
-                                                                round(plottime-epochstart, 2), 
-                                                                                    round(plottime-starttime,2), 
-                                                                                        dt.fromtimestamp(plottime-starttime).strftime("%H:%M:%S")
+                                str(round(acc_train, 4)).rjust(6),
+                                        str(round(acc_test, 4)).rjust(6), 
+                                                    str(round(total_loss.item(),3)).rjust(7), 
+                                                                str(round(plottime-epochstart, 2)).rjust(5), 
+                                                                                    str(round(plottime-starttime,2)).rjust(8), 
+                                                                                        str(dt.fromtimestamp(plottime-starttime).strftime("%H:%M:%S")).rjust(8)
                                                                                             )
 
         print(line)
@@ -136,3 +138,7 @@ if plotstuff:
     paramlist = list(["train_"+str(param), "test_"+str(param)] for param in params)
     plt.legend([x for y in paramlist for x in y])
     plt.savefig("plots/plot_{}_A.png".format(round(starttime)))
+
+torch.save(accliste_test, "auswertungen/accliste_test_{}.pt".format(round(starttime)))
+torch.save(accliste_train, "auswertungen/accliste_train_{}.pt".format(round(starttime)))
+torch.save(lossliste, "auswertungen/lossliste_{}.pt".format(round(starttime)))
