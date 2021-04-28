@@ -23,7 +23,7 @@ num_classes = 62
 if start_epoch:
     model = torch.load("models/model.pt")
 else:
-    model = VisualTransformer(inner_dim=num_classes*2, transformer_depth=1, num_classes=num_classes).to(device)
+    model = VisualTransformer(inner_dim=49, transformer_depth=1, dim_head=49, attn_heads=3, mlp_dim=49, num_classes=num_classes).to(device)
 print(sum([params.numel() for params in model.parameters()]))
 #dataset = MNIST_data(labels=labellist)
 #dataloader = Dataloader(dataset, labels=labellist)

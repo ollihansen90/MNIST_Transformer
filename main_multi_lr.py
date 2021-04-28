@@ -37,9 +37,9 @@ dataset_test = dset.EMNIST(
 )
 n_data_train = len(dataset_train)
 n_data_test = len(dataset_test)
-batch_size = 2**11+2**10
-dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=True)
-dataloader_test = torch.utils.data.DataLoader(dataset_test, batch_size=batch_size, shuffle=True)
+batch_size = 2**10
+dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=4)
+dataloader_test = torch.utils.data.DataLoader(dataset_test, batch_size=batch_size, shuffle=True, num_workers=4)
 print(n_data_train)
 print(n_data_test)
 
@@ -47,10 +47,12 @@ print(n_data_test)
 betas = (0.9, 0.999)
 #optimizer = torch.optim.SGD(model.parameters(), lr=lr)#, betas=betas)
 
-n_epochs = 200
+n_epochs = 250
 
-params = [1e-2, 1e-3, 1e-4, 1e-5, 1e-10]
-modelnames = ["model_1619164701", "model_1619172429", "model_1619180155", "model_1619187884", "model_1619195610"]
+params = [1e-2]
+lr_list = [1e-5, 1e-4, 3e-4]
+jumplist = [0, 50, 200, n_epochs+1]
+jumpidx = 0
 lossliste = torch.zeros(len(params), n_epochs).to(device)
 accliste_train = torch.zeros(len(params), n_epochs).to(device)
 accliste_test = torch.zeros(len(params), n_epochs).to(device)
@@ -59,13 +61,15 @@ for param_idx, p in enumerate(params):
     model = VisualTransformer(inner_dim=64, transformer_depth=3, mlp_dim=128, num_classes=num_classes).to(device)
     #model = VisualTransformer(inner_dim=p, transformer_depth=1, dim_head=49, attn_heads=3, mlp_dim=49, num_classes=num_classes).to(device)
     #model = torch.load("models/"+modelnames[param_idx]+".pt")
-    optimizer = torch.optim.AdamW(model.parameters(), lr=p, betas=betas)
     print(sum([params.numel() for params in model.parameters()]))
     print("Lernrate", p)
     
     with open("where.txt", "a+") as file:
         file.write("--- Lernrate "+str(p)+", "+ str(round(starttime)) + 70*"-"+"\n")
     for epoch in range(start_epoch, n_epochs+start_epoch):
+        if epoch==jumplist[jumpidx]:
+            optimizer = torch.optim.AdamW(model.parameters(), lr=lr_list[jumpidx], betas=betas, weight_decay=0.1)
+            jumpidx += 1
         epochstart = dt.now().timestamp()
         total_loss = 0
         acc_train = 0
