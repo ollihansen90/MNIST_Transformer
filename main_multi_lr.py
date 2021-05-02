@@ -7,6 +7,7 @@ from transformer import VisualTransformer
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 from torch.utils.data.sampler import SubsetRandomSampler
+from lamb import Lamb
 
 import matplotlib.pyplot as plt
 from datetime import datetime as dt
@@ -47,28 +48,42 @@ print(n_data_test)
 betas = (0.9, 0.999)
 #optimizer = torch.optim.SGD(model.parameters(), lr=lr)#, betas=betas)
 
-n_epochs = 250
+n_epochs = 200
 
-params = [1e-2]
-lr_list = [1e-5, 1e-4, 3e-4]
-jumplist = [0, 50, 200, n_epochs+1]
-jumpidx = 0
+params = [5e-5, 1e-4, 3e-4, 5e-4, 1e-3]
+warmuplr = 1e-5
+jumplist = [0, 5, n_epochs+1]
 lossliste = torch.zeros(len(params), n_epochs).to(device)
 accliste_train = torch.zeros(len(params), n_epochs).to(device)
 accliste_test = torch.zeros(len(params), n_epochs).to(device)
 for param_idx, p in enumerate(params):
+    jumpidx = 0
     starttime = dt.now().timestamp()
-    model = VisualTransformer(inner_dim=64, transformer_depth=3, mlp_dim=128, num_classes=num_classes).to(device)
+    model = VisualTransformer(
+                        inner_dim=2*num_classes, 
+                        transformer_depth=3, # Größe des Stapels an Transformern (werden nacheinander durchiteriert)
+                        attn_heads=3, # Anzahl Attention Heads
+                        dim_head=62, # eigene Dimension für Attention
+                        mlp_dim=128, # Dimension des MLPs im Transformer
+                        transformer_dropout=0.1, # Dropout des MLP im Transformer
+                        num_classes=num_classes # Anzahl Klassen
+                    ).to(device)
     #model = VisualTransformer(inner_dim=p, transformer_depth=1, dim_head=49, attn_heads=3, mlp_dim=49, num_classes=num_classes).to(device)
     #model = torch.load("models/"+modelnames[param_idx]+".pt")
+    #model = torch.load("models/model.pt")
     print(sum([params.numel() for params in model.parameters()]))
     print("Lernrate", p)
+    lr_list = [warmuplr, p]
+    optimizer = Lamb(model.parameters(), lr=1e-3, betas=betas, weight_decay=0.1)
     
     with open("where.txt", "a+") as file:
         file.write("--- Lernrate "+str(p)+", "+ str(round(starttime)) + 70*"-"+"\n")
     for epoch in range(start_epoch, n_epochs+start_epoch):
         if epoch==jumplist[jumpidx]:
-            optimizer = torch.optim.AdamW(model.parameters(), lr=lr_list[jumpidx], betas=betas, weight_decay=0.1)
+            for g in optimizer.param_groups:
+                g["lr"]= lr_list[jumpidx]
+            #optimizer = Lamb(model.parameters(), lr=lr_list[jumpidx], betas=betas, weight_decay=0.1)
+            #optimizer = torch.optim.AdamW(model.parameters(), lr=lr_list[jumpidx], betas=betas, weight_decay=0.1)
             jumpidx += 1
         epochstart = dt.now().timestamp()
         total_loss = 0

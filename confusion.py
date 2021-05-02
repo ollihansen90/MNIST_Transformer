@@ -8,18 +8,19 @@ import matplotlib.pyplot as plt
 from datetime import datetime as dt
 
 model = torch.load("models/model.pt").cpu().eval()
-for param in model.parameters():
+"""for param in model.parameters():
     print(param.shape)
-"""dataset = MNIST_data()
+dataset = MNIST_data()
 dataloader = Dataloader(dataset)"""
 dataset = dset.EMNIST(
     root="datasets",
     split="byclass",
-    #split="balancec",
+    #split="balanced",
     train=True,
     transform=transforms.Compose([transforms.ToTensor()]),
     download=True
 )
+print("targets", dataset.targets.numpy().shape)
 n_data = len(dataset)
 batch_size = 3000
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
@@ -47,4 +48,5 @@ confusion = F.normalize(confusion, p=1, dim=0)
 
 plt.figure()
 plt.imshow(confusion)
+#plt.gca().set_xticklabels(dataset.targets.item())
 plt.savefig("plots/plot_{}_C.png".format(round(dt.now().timestamp())))

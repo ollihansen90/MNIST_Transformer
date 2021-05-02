@@ -90,6 +90,7 @@ class VisualTransformer(nn.Module):
                     attn_heads=8, # Anzahl Attention Heads
                     dim_head=64, # eigene Dimension für Attention
                     mlp_dim=128, # Dimension des MLPs im Transformer
+                    transformer_dropout=0., # Dropout des MLP im Transformer
                     num_classes=10 # Anzahl Klassen (max=10)
                 ):
         super(VisualTransformer, self).__init__()
@@ -104,7 +105,8 @@ class VisualTransformer(nn.Module):
                             depth=transformer_depth, 
                             heads=attn_heads, 
                             dim_head=dim_head, 
-                            mlp_dim=mlp_dim
+                            mlp_dim=mlp_dim,
+                            dropout=transformer_dropout
                         ) 
         self.dropout = nn.Dropout(p=0.5)
         self.outMLP = nn.Sequential(

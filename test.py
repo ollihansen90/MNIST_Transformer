@@ -33,16 +33,22 @@ plt.imshow(img)
 plt.savefig("plots/"+str(round(dt.now().timestamp()))+".png")"""
 
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
-input = torch.tensor([[1,0,0,0,0],
-                    [0,0,1,0,0],
-                    [1,0,0,0,0]
-                    ], dtype=torch.float)
-target = torch.randint(5, (3,), dtype=torch.int64)
-loss = F.cross_entropy(input, target)
-print(torch.argmax(input, dim=-1))
+class testmodel(nn.Module):
+    def __init__(self):
+        super(testmodel, self).__init__()
+        self.weights = torch.nn.Parameter(torch.zeros(4))
+        self.weights2 = torch.nn.Parameter(torch.zeros(4))
+    
+    def forward(self, x):
+        return self.weights+x
 
-print(input)
-print(target)
-print(loss)
+model = testmodel()
+optimizer = torch.optim.AdamW(model.parameters(), lr=0.1)
+
+g["lr"]= 1e-3 for g in optimizer.param_groups
+
+for g in optimizer.param_groups:
+    print(g)
