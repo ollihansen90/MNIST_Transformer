@@ -95,7 +95,7 @@ class VisualTransformer(nn.Module):
                 ):
         super(VisualTransformer, self).__init__()
         print("num_classes", num_classes)
-        self.projector = nn.Linear(49, inner_dim) # hier stimmt die 49
+        self.projector = nn.Linear(49, inner_dim, bias=False) # hier stimmt die 49
         
         self.class_token = nn.Parameter(torch.randn(1, 1, inner_dim))
         self.pos_emb = nn.Parameter(torch.randn(1, 16+1, inner_dim))
@@ -108,7 +108,7 @@ class VisualTransformer(nn.Module):
                             mlp_dim=mlp_dim,
                             dropout=transformer_dropout
                         ) 
-        self.dropout = nn.Dropout(p=0.5)
+        self.dropout = nn.Dropout(p=0.)
         self.outMLP = nn.Sequential(
             nn.LayerNorm(inner_dim),
             nn.Linear(inner_dim, num_classes) # inner_dim auf 10 Klassen (da 10 Ziffern)

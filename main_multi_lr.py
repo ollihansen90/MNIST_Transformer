@@ -16,6 +16,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 plotstuff = 1
 savemodel = 1
 start_epoch = 0
+use_warmup = 0
 
 #labellist = [3,4,7]
 labellist = list(range(62))
@@ -39,8 +40,8 @@ dataset_test = dset.EMNIST(
 n_data_train = len(dataset_train)
 n_data_test = len(dataset_test)
 batch_size = 2**10
-dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=4)
-dataloader_test = torch.utils.data.DataLoader(dataset_test, batch_size=batch_size, shuffle=True, num_workers=4)
+dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=2)
+dataloader_test = torch.utils.data.DataLoader(dataset_test, batch_size=batch_size, shuffle=True, num_workers=2)
 print(n_data_train)
 print(n_data_test)
 
@@ -48,18 +49,20 @@ print(n_data_test)
 betas = (0.9, 0.999)
 #optimizer = torch.optim.SGD(model.parameters(), lr=lr)#, betas=betas)
 
-n_epochs = 200
+n_epochs = 60
 
-params = [5e-5, 1e-4, 3e-4, 5e-4, 1e-3]
+#params = [5e-5, 1e-4, 3e-4, 5e-4, 1e-3]
+params = [1e-3]#, 1e-4]
 warmuplr = 1e-5
-jumplist = [0, 5, n_epochs+1]
+#jumplist = [0, 5, n_epochs+1]
+jumplist = [0, 15, 40, n_epochs+1]
 lossliste = torch.zeros(len(params), n_epochs).to(device)
 accliste_train = torch.zeros(len(params), n_epochs).to(device)
 accliste_test = torch.zeros(len(params), n_epochs).to(device)
 for param_idx, p in enumerate(params):
     jumpidx = 0
     starttime = dt.now().timestamp()
-    model = VisualTransformer(
+    """model = VisualTransformer(
                         inner_dim=2*num_classes, 
                         transformer_depth=3, # Größe des Stapels an Transformern (werden nacheinander durchiteriert)
                         attn_heads=3, # Anzahl Attention Heads
@@ -67,14 +70,27 @@ for param_idx, p in enumerate(params):
                         mlp_dim=128, # Dimension des MLPs im Transformer
                         transformer_dropout=0.1, # Dropout des MLP im Transformer
                         num_classes=num_classes # Anzahl Klassen
+                    ).to(device)"""
+    model = VisualTransformer(
+                        inner_dim=5*num_classes, 
+                        transformer_depth=3, # Größe des Stapels an Transformern (werden nacheinander durchiteriert)
+                        attn_heads=16, # Anzahl Attention Heads
+                        dim_head=2*62, # eigene Dimension für Attention
+                        mlp_dim=128, # Dimension des MLPs im Transformer
+                        transformer_dropout=0.,#1, # Dropout des MLP im Transformer
+                        num_classes=num_classes # Anzahl Klassen
                     ).to(device)
     #model = VisualTransformer(inner_dim=p, transformer_depth=1, dim_head=49, attn_heads=3, mlp_dim=49, num_classes=num_classes).to(device)
     #model = torch.load("models/"+modelnames[param_idx]+".pt")
     #model = torch.load("models/model.pt")
     print(sum([params.numel() for params in model.parameters()]))
     print("Lernrate", p)
-    lr_list = [warmuplr, p]
-    optimizer = Lamb(model.parameters(), lr=1e-3, betas=betas, weight_decay=0.1)
+    if use_warmup:
+        lr_list = [warmuplr, p]
+    else:
+        lr_list = 2*[p]
+        lr_list = [p, 1e-4, 1e-5]
+    optimizer = Lamb(model.parameters(), lr=1e-3, betas=betas, weight_decay=0.)
     
     with open("where.txt", "a+") as file:
         file.write("--- Lernrate "+str(p)+", "+ str(round(starttime)) + 70*"-"+"\n")
