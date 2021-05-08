@@ -39,8 +39,8 @@ dataset_test = dset.EMNIST(
 n_data_train = len(dataset_train)
 n_data_test = len(dataset_test)
 batch_size = 2**10
-dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=True)
-dataloader_test = torch.utils.data.DataLoader(dataset_test, batch_size=batch_size, shuffle=True)
+dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=2)
+dataloader_test = torch.utils.data.DataLoader(dataset_test, batch_size=batch_size, shuffle=True, num_workers=2)
 print(n_data_train)
 print(n_data_test)
 
@@ -50,7 +50,7 @@ betas = (0.9, 0.999)
 
 n_epochs = 50
 
-params = [2, 4, 8]
+params = [1, 2, 4, 8]
 #modelnames = ["model_1619164701", "model_1619172429", "model_1619180155", "model_1619187884", "model_1619195610"]
 lossliste = torch.zeros(len(params), n_epochs).to(device)
 accliste_train = torch.zeros(len(params), n_epochs).to(device)

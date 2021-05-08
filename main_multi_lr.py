@@ -40,8 +40,8 @@ dataset_test = dset.EMNIST(
 n_data_train = len(dataset_train)
 n_data_test = len(dataset_test)
 batch_size = 2**10
-dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=2)
-dataloader_test = torch.utils.data.DataLoader(dataset_test, batch_size=batch_size, shuffle=True, num_workers=2)
+dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=4)
+dataloader_test = torch.utils.data.DataLoader(dataset_test, batch_size=batch_size, shuffle=True, num_workers=4)
 print(n_data_train)
 print(n_data_test)
 
