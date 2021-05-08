@@ -44,7 +44,7 @@ dataloader_test = torch.utils.data.DataLoader(dataset_test, batch_size=batch_siz
 print(n_data_train)
 print(n_data_test)
 
-lr = 1e-4
+lr = 2e-4
 betas = (0.9, 0.999)
 #optimizer = torch.optim.SGD(model.parameters(), lr=lr)#, betas=betas)
 
