@@ -7,6 +7,7 @@ from transformer import VisualTransformer
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 from torch.utils.data.sampler import SubsetRandomSampler
+from lamb import Lamb
 
 import matplotlib.pyplot as plt
 from datetime import datetime as dt
@@ -37,35 +38,47 @@ dataset_test = dset.EMNIST(
 )
 n_data_train = len(dataset_train)
 n_data_test = len(dataset_test)
-batch_size = 2**11+2**10
+batch_size = 2**11
 dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=True)
 dataloader_test = torch.utils.data.DataLoader(dataset_test, batch_size=batch_size, shuffle=True)
 print(n_data_train)
 print(n_data_test)
 
-#lr = 1e-3
+lr = 1e-4
 betas = (0.9, 0.999)
 #optimizer = torch.optim.SGD(model.parameters(), lr=lr)#, betas=betas)
 
-n_epochs = 200
+n_epochs = 50
 
-params = [1e-2, 1e-3, 1e-4, 1e-5, 1e-10]
-modelnames = ["model_1619164701", "model_1619172429", "model_1619180155", "model_1619187884", "model_1619195610"]
+params = [1, 2, 4, 8]
+#modelnames = ["model_1619164701", "model_1619172429", "model_1619180155", "model_1619187884", "model_1619195610"]
 lossliste = torch.zeros(len(params), n_epochs).to(device)
 accliste_train = torch.zeros(len(params), n_epochs).to(device)
 accliste_test = torch.zeros(len(params), n_epochs).to(device)
 for param_idx, p in enumerate(params):
     starttime = dt.now().timestamp()
-    model = VisualTransformer(inner_dim=64, transformer_depth=3, mlp_dim=128, num_classes=num_classes).to(device)
+    model = VisualTransformer(inner_dim=256,
+                                mlp_groups=p, 
+                                transformer_depth=3, # Größe des Stapels an Transformern (werden nacheinander durchiteriert)
+                                attn_heads=16, # Anzahl Attention Heads
+                                dim_head=2*62, # eigene Dimension für Attention
+                                mlp_dim=128, # Dimension des MLPs im Transformer
+                                transformer_dropout=0.,#1, # Dropout des MLP im Transformer
+                                num_classes=num_classes # Anzahl Klassen
+                            ).to(device)
     #model = VisualTransformer(inner_dim=p, transformer_depth=1, dim_head=49, attn_heads=3, mlp_dim=49, num_classes=num_classes).to(device)
     #model = torch.load("models/"+modelnames[param_idx]+".pt")
-    optimizer = torch.optim.AdamW(model.parameters(), lr=p, betas=betas)
     print(sum([params.numel() for params in model.parameters()]))
-    print("Lernrate", p)
+    print("mlp_groups", p)
     
     with open("where.txt", "a+") as file:
-        file.write("--- Lernrate "+str(p)+", "+ str(round(starttime)) + 70*"-"+"\n")
+        file.write("--- MLP_groups "+str(p)+", "+ str(round(starttime)) + 70*"-"+"\n")
     for epoch in range(start_epoch, n_epochs+start_epoch):
+        if epoch==0:
+            optimizer = Lamb(model.parameters(), lr=1e-5, betas=betas)
+        if epoch==5:
+            for g in optimizer.param_groups:
+                g["lr"]= lr
         epochstart = dt.now().timestamp()
         total_loss = 0
         acc_train = 0

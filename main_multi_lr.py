@@ -77,6 +77,7 @@ for param_idx, p in enumerate(params):
                         attn_heads=16, # Anzahl Attention Heads
                         dim_head=2*62, # eigene Dimension für Attention
                         mlp_dim=128, # Dimension des MLPs im Transformer
+                        mlp_groups=1,
                         transformer_dropout=0.,#1, # Dropout des MLP im Transformer
                         num_classes=num_classes # Anzahl Klassen
                     ).to(device)
@@ -89,7 +90,7 @@ for param_idx, p in enumerate(params):
         lr_list = [warmuplr, p]
     else:
         lr_list = 2*[p]
-        lr_list = [p, 1e-4, 1e-5]
+        lr_list = [p, 1e-4, 1e-3]
     optimizer = Lamb(model.parameters(), lr=1e-3, betas=betas, weight_decay=0.)
     
     with open("where.txt", "a+") as file:

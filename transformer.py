@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from torch.nn.functional import softmax
 from patchify import patchify
+from WeavedMLP import WeavedMLP
 
 class MLP(nn.Module):
     def __init__(self, in_dim=49, hidden_dim=64, dropout=0.0):
@@ -67,13 +68,20 @@ class PreNorm(nn.Module):
         return out
 
 class Transformer(nn.Module):
-    def __init__(self, dim, depth=8, heads=8, dim_head=64, mlp_dim=128, dropout=0.0):
+    def __init__(self, dim, depth=8, heads=8, dim_head=64, mlp_dim=128, mlp_groups=2, dropout=0.0):
         super(Transformer, self).__init__()
         self.layers = nn.ModuleList([])
         for _ in range(depth):
             self.layers.append(nn.ModuleList([
                 PreNorm(dim, Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout)),
-                PreNorm(dim, MLP(in_dim=dim, hidden_dim=mlp_dim, dropout=dropout))
+                #PreNorm(dim, MLP(in_dim=dim, hidden_dim=mlp_dim, dropout=dropout))
+                PreNorm(dim, WeavedMLP(dim_in=dim, 
+                                        hidden_dims=mlp_dim, 
+                                        dim_out=dim, 
+                                        dropout=dropout, 
+                                        n_groups=mlp_groups
+                                    )
+                        )
             ]))
 
     def forward(self, x):
@@ -90,6 +98,7 @@ class VisualTransformer(nn.Module):
                     attn_heads=8, # Anzahl Attention Heads
                     dim_head=64, # eigene Dimension für Attention
                     mlp_dim=128, # Dimension des MLPs im Transformer
+                    mlp_groups=1,
                     transformer_dropout=0., # Dropout des MLP im Transformer
                     num_classes=10 # Anzahl Klassen (max=10)
                 ):
@@ -106,6 +115,7 @@ class VisualTransformer(nn.Module):
                             heads=attn_heads, 
                             dim_head=dim_head, 
                             mlp_dim=mlp_dim,
+                            mlp_groups=mlp_groups,
                             dropout=transformer_dropout
                         ) 
         self.dropout = nn.Dropout(p=0.)
