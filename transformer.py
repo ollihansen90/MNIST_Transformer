@@ -53,7 +53,9 @@ class Attention(nn.Module):
         v = torch.cat(v.chunk(self.heads, dim=-1), dim=-3)
         dots = torch.matmul(q, k.transpose(-1, -2))*self.scale
         attn = self.sftmx(dots)
-        out = torch.matmul(attn.transpose(-2,-1), v)
+        #print(attn.shape)
+        #out = torch.matmul(attn.transpose(-2,-1), v)
+        out = torch.matmul(attn, v)
         out = out.transpose(-3,-2).flatten(start_dim=-2, end_dim=-1).squeeze()
         return self.out(out)
 
@@ -93,6 +95,7 @@ class Transformer(nn.Module):
 class VisualTransformer(nn.Module):
     def __init__(
                     self, 
+                    n_patches=16,
                     inner_dim=49*2, 
                     transformer_depth=5, # Größe des Stapels an Transformern (werden nacheinander durchiteriert)
                     attn_heads=8, # Anzahl Attention Heads
@@ -103,8 +106,9 @@ class VisualTransformer(nn.Module):
                     num_classes=10 # Anzahl Klassen (max=10)
                 ):
         super(VisualTransformer, self).__init__()
+        self.n_patches = n_patches
         print("num_classes", num_classes)
-        self.projector = nn.Linear(49, inner_dim, bias=False) # hier stimmt die 49
+        self.projector = nn.Linear(int(28**2/n_patches), inner_dim, bias=False) # hier stimmt die 49
         
         self.class_token = nn.Parameter(torch.randn(1, 1, inner_dim))
         self.pos_emb = nn.Parameter(torch.randn(1, 16+1, inner_dim))
@@ -128,12 +132,15 @@ class VisualTransformer(nn.Module):
             img = img.unsqueeze(0)
         b, *_ = img.shape # b ist die Batchsize (später)
         
-        x = patchify(img) # x ist jetzt ein "Stapel" von Matrizen mit zeilenweise geflatteten Patches
+        x = patchify(img, n_patches=self.n_patches) # x ist jetzt ein "Stapel" von Matrizen mit zeilenweise geflatteten Patches
         #print(x.shape)
         x = self.projector(x)
 
         cls_token = self.class_token.repeat([b,1,1])
         pos_emb = self.class_token.repeat([b,1,1])
+        if self.n_patches==1: # Im Fall des gesamten Bildes fehlt bei der Ausgabe des Projektors eine Dimension, die den Stapel beschreibt
+            x = x.unsqueeze(1)
+        #print(cls_token.shape, x.shape)
         x = torch.cat((cls_token, x), dim=-2)
         x += pos_emb
         x = self.dropout(x)

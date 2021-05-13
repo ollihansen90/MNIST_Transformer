@@ -1,9 +1,10 @@
 import torch
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
+#import torch.nn.functional as F
 from datetime import datetime as dt
+from os import remove
+from math import log10
 
 model = torch.load("models/model.pt").cpu().eval()
 """for param in model.parameters():
@@ -32,18 +33,14 @@ output = model(img)
 print("output", label.shape)
 print("output", output.shape)
 _, idx = torch.max(output, dim=-1)
-#_, real_idx = torch.max(label, dim=-1)
-real_idx = label
 
 print("Top1-Acc", torch.sum(torch.argmax(output, dim=-1)==label).item()/batch_size)
+remove("top5.txt")
+with open("top5.txt", "a+") as file:
+    top5 = 0
+    for test, out in zip(label, output):
+        vals_top5, idx_top5 = torch.topk(out, 5)
+        file.write(str(dataset.classes[test])+" "+ str([dataset.classes[entry] for entry in idx_top5]) + " " + str([round(log10(val.item()),2) for val in vals_top5]) + " " + str(test in idx_top5) + "\n")
+        top5 += (test in idx_top5)
 
-confusion = torch.zeros((n_classes,n_classes))
-for i,j in zip(idx, real_idx):
-    confusion[i,j] += 1
-
-confusion = F.normalize(confusion, p=1, dim=0)
-
-plt.figure()
-plt.imshow(confusion)
-#plt.gca().set_xticklabels(dataset.targets.item())
-plt.savefig("plots/plot_{}_C.png".format(round(dt.now().timestamp())))
+print("Top5-Acc", top5/batch_size)

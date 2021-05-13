@@ -39,46 +39,47 @@ dataset_test = dset.EMNIST(
 n_data_train = len(dataset_train)
 n_data_test = len(dataset_test)
 batch_size = 2**10
-dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=2)
-dataloader_test = torch.utils.data.DataLoader(dataset_test, batch_size=batch_size, shuffle=True, num_workers=2)
+dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=4)
+dataloader_test = torch.utils.data.DataLoader(dataset_test, batch_size=batch_size, shuffle=True, num_workers=4)
 print(n_data_train)
 print(n_data_test)
 
-lr = 2e-4
+lr = 4e-4
 betas = (0.9, 0.999)
 #optimizer = torch.optim.SGD(model.parameters(), lr=lr)#, betas=betas)
 
 n_epochs = 50
 
-params = [1, 2, 4, 8]
+params = [1e-5, 1e-4, 1e-3]
 #modelnames = ["model_1619164701", "model_1619172429", "model_1619180155", "model_1619187884", "model_1619195610"]
 lossliste = torch.zeros(len(params), n_epochs).to(device)
 accliste_train = torch.zeros(len(params), n_epochs).to(device)
 accliste_test = torch.zeros(len(params), n_epochs).to(device)
-for param_idx, p in enumerate(params):
+for param_idx, param in enumerate(params):
     starttime = dt.now().timestamp()
-    model = VisualTransformer(inner_dim=256,
-                                mlp_groups=p, 
+    model = VisualTransformer(n_patches=16,
+                                inner_dim=128,
+                                mlp_groups=1, 
                                 transformer_depth=3, # Größe des Stapels an Transformern (werden nacheinander durchiteriert)
                                 attn_heads=16, # Anzahl Attention Heads
                                 dim_head=2*62, # eigene Dimension für Attention
-                                mlp_dim=128, # Dimension des MLPs im Transformer
+                                mlp_dim=64, # Dimension des MLPs im Transformer
                                 transformer_dropout=0.,#1, # Dropout des MLP im Transformer
                                 num_classes=num_classes # Anzahl Klassen
                             ).to(device)
     #model = VisualTransformer(inner_dim=p, transformer_depth=1, dim_head=49, attn_heads=3, mlp_dim=49, num_classes=num_classes).to(device)
     #model = torch.load("models/"+modelnames[param_idx]+".pt")
     print(sum([params.numel() for params in model.parameters()]))
-    print("mlp_groups", p)
+    print("lr", param)
     
     with open("where.txt", "a+") as file:
-        file.write("--- MLP_groups "+str(p)+", "+ str(round(starttime)) + 70*"-"+"\n")
+        file.write("--- Learning Rate "+str(param)+", "+ str(round(starttime)) + 70*"-"+"\n")
     for epoch in range(start_epoch, n_epochs+start_epoch):
-        if epoch==0:
+        if epoch==0: # warmup
             optimizer = Lamb(model.parameters(), lr=1e-5, betas=betas)
         if epoch==5:
             for g in optimizer.param_groups:
-                g["lr"]= lr
+                g["lr"]= param
         epochstart = dt.now().timestamp()
         total_loss = 0
         acc_train = 0

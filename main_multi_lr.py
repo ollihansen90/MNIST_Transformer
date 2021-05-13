@@ -73,6 +73,7 @@ for param_idx, p in enumerate(params):
                     ).to(device)"""
     model = VisualTransformer(
                         inner_dim=5*num_classes, 
+                        n_patches=4,
                         transformer_depth=3, # Größe des Stapels an Transformern (werden nacheinander durchiteriert)
                         attn_heads=16, # Anzahl Attention Heads
                         dim_head=2*62, # eigene Dimension für Attention
