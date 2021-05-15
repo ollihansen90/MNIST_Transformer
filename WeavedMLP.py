@@ -14,13 +14,13 @@ class WeavedMLP(nn.Module):
         self.layers.append(
             GroupedLinear(dim_in, 
             hidden_dims[0], 
-            n_groups=n_groups)
+            n_groups=self.n_groups)
             )
         for i in range(self.depth):
             self.layers.append(
                 GroupedLinear(hidden_dims[i], 
                               hidden_dims[i+1], 
-                              n_groups=n_groups)
+                              n_groups=self.n_groups)
                 )
         self.outlayer = nn.Linear(hidden_dims[-1], dim_out)
         self.activation = nn.ReLU()

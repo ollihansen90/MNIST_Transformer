@@ -15,6 +15,7 @@ from datetime import datetime as dt
 device = "cuda" if torch.cuda.is_available() else "cpu"
 plotstuff = 1
 savemodel = 1
+save_every = 5
 start_epoch = 0
 
 #labellist = [3,4,7]
@@ -38,7 +39,7 @@ dataset_test = dset.EMNIST(
 )
 n_data_train = len(dataset_train)
 n_data_test = len(dataset_test)
-batch_size = 2**10
+batch_size = 2**9
 dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=4)
 dataloader_test = torch.utils.data.DataLoader(dataset_test, batch_size=batch_size, shuffle=True, num_workers=4)
 print(n_data_train)
@@ -50,7 +51,7 @@ betas = (0.9, 0.999)
 
 n_epochs = 50
 
-params = [1e-5, 1e-4, 1e-3]
+params = [7,5,3,1] # next evtl. n_epoch=200 
 #modelnames = ["model_1619164701", "model_1619172429", "model_1619180155", "model_1619187884", "model_1619195610"]
 lossliste = torch.zeros(len(params), n_epochs).to(device)
 accliste_train = torch.zeros(len(params), n_epochs).to(device)
@@ -59,8 +60,8 @@ for param_idx, param in enumerate(params):
     starttime = dt.now().timestamp()
     model = VisualTransformer(n_patches=16,
                                 inner_dim=128,
-                                mlp_groups=1, 
-                                transformer_depth=3, # Größe des Stapels an Transformern (werden nacheinander durchiteriert)
+                                mlp_groups=2, 
+                                transformer_depth=param, # Größe des Stapels an Transformern (werden nacheinander durchiteriert)
                                 attn_heads=16, # Anzahl Attention Heads
                                 dim_head=2*62, # eigene Dimension für Attention
                                 mlp_dim=64, # Dimension des MLPs im Transformer
@@ -70,16 +71,16 @@ for param_idx, param in enumerate(params):
     #model = VisualTransformer(inner_dim=p, transformer_depth=1, dim_head=49, attn_heads=3, mlp_dim=49, num_classes=num_classes).to(device)
     #model = torch.load("models/"+modelnames[param_idx]+".pt")
     print(sum([params.numel() for params in model.parameters()]))
-    print("lr", param)
+    print("transformer_depth", param)
     
     with open("where.txt", "a+") as file:
-        file.write("--- Learning Rate "+str(param)+", "+ str(round(starttime)) + 70*"-"+"\n")
+        file.write("--- transformer_depth "+str(param)+", "+ str(round(starttime)) + 70*"-"+"\n")
     for epoch in range(start_epoch, n_epochs+start_epoch):
         if epoch==0: # warmup
             optimizer = Lamb(model.parameters(), lr=1e-5, betas=betas)
-        if epoch==5:
+        if epoch==1:
             for g in optimizer.param_groups:
-                g["lr"]= param
+                g["lr"]= 2e-4
         epochstart = dt.now().timestamp()
         total_loss = 0
         acc_train = 0
@@ -134,8 +135,8 @@ for param_idx, param in enumerate(params):
         with open("where.txt", "a+") as file:
             file.write(line+"\n")
         
-        if epoch%10==0 and savemodel:
-            torch.save(model, "models/model.pt")
+        if epoch%save_every==0 and savemodel:
+            torch.save(model, "models/model_{}.pt".format(epoch))
 
     if savemodel:
         torch.save(model, "models/model_{}.pt".format(round(starttime)))

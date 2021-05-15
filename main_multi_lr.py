@@ -15,6 +15,7 @@ from datetime import datetime as dt
 device = "cuda" if torch.cuda.is_available() else "cpu"
 plotstuff = 1
 savemodel = 1
+save_every = 5
 start_epoch = 0
 use_warmup = 0
 
@@ -157,8 +158,8 @@ for param_idx, p in enumerate(params):
         with open("where.txt", "a+") as file:
             file.write(line+"\n")
         
-        if epoch%10==0 and savemodel:
-            torch.save(model, "models/model.pt")
+        if epoch%save_every==0 and savemodel:
+            torch.save(model, "models/model_{}.pt".format(epoch))
 
     if savemodel:
         torch.save(model, "models/model_{}.pt".format(round(starttime)))

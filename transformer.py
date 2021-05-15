@@ -3,6 +3,7 @@ from torch import nn
 from torch.nn.functional import softmax
 from patchify import patchify
 from WeavedMLP import WeavedMLP
+from datetime import datetime as dt
 
 class MLP(nn.Module):
     def __init__(self, in_dim=49, hidden_dim=64, dropout=0.0):
@@ -108,7 +109,7 @@ class VisualTransformer(nn.Module):
         super(VisualTransformer, self).__init__()
         self.n_patches = n_patches
         print("num_classes", num_classes)
-        self.projector = nn.Linear(int(28**2/n_patches), inner_dim, bias=False) # hier stimmt die 49
+        self.projector = nn.Linear(int(28**2/n_patches), inner_dim, bias=False) # int(28**2/n_patches) ist hier die vektorisierte Patchgröße
         
         self.class_token = nn.Parameter(torch.randn(1, 1, inner_dim))
         self.pos_emb = nn.Parameter(torch.randn(1, 16+1, inner_dim))
@@ -125,31 +126,40 @@ class VisualTransformer(nn.Module):
         self.dropout = nn.Dropout(p=0.)
         self.outMLP = nn.Sequential(
             nn.LayerNorm(inner_dim),
-            nn.Linear(inner_dim, num_classes) # inner_dim auf 10 Klassen (da 10 Ziffern)
+            nn.Linear(inner_dim, num_classes)
         )
     def forward(self, img):
+        #starttime = dt.now()
         while len(img.shape)<4:
             img = img.unsqueeze(0)
         b, *_ = img.shape # b ist die Batchsize (später)
         
         x = patchify(img, n_patches=self.n_patches) # x ist jetzt ein "Stapel" von Matrizen mit zeilenweise geflatteten Patches
-        #print(x.shape)
+        #dtime = dt.now()-starttime
         x = self.projector(x)
+        #dtime = dt.now()-starttime-dtime
+        #print("projector", dtime)
 
         cls_token = self.class_token.repeat([b,1,1])
-        pos_emb = self.class_token.repeat([b,1,1])
+        pos_emb = self.pos_emb.repeat([b,1,1])
         if self.n_patches==1: # Im Fall des gesamten Bildes fehlt bei der Ausgabe des Projektors eine Dimension, die den Stapel beschreibt
             x = x.unsqueeze(1)
         #print(cls_token.shape, x.shape)
         x = torch.cat((cls_token, x), dim=-2)
         x += pos_emb
         x = self.dropout(x)
+        #dtime = dt.now()-starttime-dtime
+        #print("Alle möglichen Token", dtime)
         
         x = self.transfomer(x)[:,0]
+        #dtime = dt.now()-starttime-dtime
+        #print("transfomer", dtime)
         #print("Transformer-Output", x.shape)
         #x = x.mean(dim=-2)
         #print("Transformer-Output", x.shape)
         x = self.outMLP(x)
+        #dtime = dt.now()-starttime-dtime
+        #print("outMLP", dtime)
         # hier fehlt vermutlich noch ein Softmax oder sowas
         x = softmax(x, dim=-1)
 

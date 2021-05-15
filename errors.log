@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "errorpy.py", line 1, in <module>
+    print(1/0)
+ZeroDivisionError: division by zero
