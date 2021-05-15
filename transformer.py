@@ -71,7 +71,7 @@ class PreNorm(nn.Module):
         return out
 
 class Transformer(nn.Module):
-    def __init__(self, dim, depth=8, heads=8, dim_head=64, mlp_dim=128, mlp_groups=2, dropout=0.0):
+    def __init__(self, dim, depth=3, heads=8, dim_head=64, mlp_dim=128, mlp_groups=2, dropout=0.0):
         super(Transformer, self).__init__()
         self.layers = nn.ModuleList([])
         for _ in range(depth):
@@ -132,35 +132,21 @@ class VisualTransformer(nn.Module):
         #starttime = dt.now()
         while len(img.shape)<4:
             img = img.unsqueeze(0)
-        b, *_ = img.shape # b ist die Batchsize (später)
+        b, *_ = img.shape # batchsize
         
         x = patchify(img, n_patches=self.n_patches) # x ist jetzt ein "Stapel" von Matrizen mit zeilenweise geflatteten Patches
-        #dtime = dt.now()-starttime
-        x = self.projector(x)
-        #dtime = dt.now()-starttime-dtime
-        #print("projector", dtime)
+        x = self.projector(x) # x wird in inner_dim-dimensionalen Vektorraum projiziert
 
-        cls_token = self.class_token.repeat([b,1,1])
-        pos_emb = self.pos_emb.repeat([b,1,1])
+        cls_token = self.class_token.repeat([b,1,1]) # Klassentoken
+        pos_emb = self.pos_emb.repeat([b,1,1]) # Positionembedding
         if self.n_patches==1: # Im Fall des gesamten Bildes fehlt bei der Ausgabe des Projektors eine Dimension, die den Stapel beschreibt
             x = x.unsqueeze(1)
-        #print(cls_token.shape, x.shape)
         x = torch.cat((cls_token, x), dim=-2)
         x += pos_emb
-        x = self.dropout(x)
-        #dtime = dt.now()-starttime-dtime
-        #print("Alle möglichen Token", dtime)
+        x = self.dropout(x) # Dropout für das pos_emb (hier wird auch der cls-Token gedroppt, ist das richtig?)
         
-        x = self.transfomer(x)[:,0]
-        #dtime = dt.now()-starttime-dtime
-        #print("transfomer", dtime)
-        #print("Transformer-Output", x.shape)
-        #x = x.mean(dim=-2)
-        #print("Transformer-Output", x.shape)
+        x = self.transfomer(x)[:,0] # oder x.mean(dim=-2)
         x = self.outMLP(x)
-        #dtime = dt.now()-starttime-dtime
-        #print("outMLP", dtime)
-        # hier fehlt vermutlich noch ein Softmax oder sowas
+        
         x = softmax(x, dim=-1)
-
         return x
