@@ -71,9 +71,10 @@ class PreNorm(nn.Module):
         return out
 
 class Transformer(nn.Module):
-    def __init__(self, dim, depth=3, heads=8, dim_head=64, mlp_dim=128, mlp_groups=2, dropout=0.0):
+    def __init__(self, dim, depth=3, heads=8, dim_head=64, mlp_dim=128, mlp_groups=2, dropout=0.0, use_mlp=True):
         super(Transformer, self).__init__()
         self.layers = nn.ModuleList([])
+        self.use_mlp = use_mlp
         for _ in range(depth):
             self.layers.append(nn.ModuleList([
                 PreNorm(dim, Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout)),
@@ -84,27 +85,29 @@ class Transformer(nn.Module):
                                         dropout=dropout, 
                                         n_groups=mlp_groups
                                     )
-                        )
+                        ) if use_mlp else None
             ]))
 
     def forward(self, x):
         for attention, mlp in self.layers:
             x = attention(x)+x
-            x = mlp(x)+x
+            if self.use_mlp:
+                x = mlp(x)+x
         return x
 
 class VisualTransformer(nn.Module):
     def __init__(
                     self, 
                     n_patches=16,
-                    inner_dim=49*2, 
-                    transformer_depth=5, # Größe des Stapels an Transformern (werden nacheinander durchiteriert)
+                    inner_dim=128, 
+                    transformer_depth=3, #3 ist ausreichend, 10 wäre ein krasser Dude # Größe des Stapels an Transformern (werden nacheinander durchiteriert)
                     attn_heads=8, # Anzahl Attention Heads
-                    dim_head=64, # eigene Dimension für Attention
+                    dim_head=16, # eigene Dimension für Attention
                     mlp_dim=128, # Dimension des MLPs im Transformer
                     mlp_groups=1,
                     transformer_dropout=0., # Dropout des MLP im Transformer
-                    num_classes=10 # Anzahl Klassen (max=10)
+                    num_classes=10, # Anzahl Klassen (max=10)
+                    use_mlp=True # benutze MLP im Encoder
                 ):
         super(VisualTransformer, self).__init__()
         self.n_patches = n_patches
@@ -112,7 +115,7 @@ class VisualTransformer(nn.Module):
         self.projector = nn.Linear(int(28**2/n_patches), inner_dim, bias=False) # int(28**2/n_patches) ist hier die vektorisierte Patchgröße
         
         self.class_token = nn.Parameter(torch.randn(1, 1, inner_dim))
-        self.pos_emb = nn.Parameter(torch.randn(1, 16+1, inner_dim))
+        self.pos_emb = nn.Parameter(torch.randn(1, n_patches+1, inner_dim))
         
         self.transfomer = Transformer(
                             dim=inner_dim, 
@@ -121,7 +124,8 @@ class VisualTransformer(nn.Module):
                             dim_head=dim_head, 
                             mlp_dim=mlp_dim,
                             mlp_groups=mlp_groups,
-                            dropout=transformer_dropout
+                            dropout=transformer_dropout,
+                            use_mlp=use_mlp
                         ) 
         self.dropout = nn.Dropout(p=0.)
         self.outMLP = nn.Sequential(
@@ -138,7 +142,7 @@ class VisualTransformer(nn.Module):
         x = self.projector(x) # x wird in inner_dim-dimensionalen Vektorraum projiziert
 
         cls_token = self.class_token.repeat([b,1,1]) # Klassentoken
-        pos_emb = self.pos_emb.repeat([b,1,1]) # Positionembedding
+        pos_emb = self.pos_emb.repeat([b,1,1]) # Position Embedding
         if self.n_patches==1: # Im Fall des gesamten Bildes fehlt bei der Ausgabe des Projektors eine Dimension, die den Stapel beschreibt
             x = x.unsqueeze(1)
         x = torch.cat((cls_token, x), dim=-2)
@@ -148,5 +152,5 @@ class VisualTransformer(nn.Module):
         x = self.transfomer(x)[:,0] # oder x.mean(dim=-2)
         x = self.outMLP(x)
         
-        x = softmax(x, dim=-1)
+        #x = softmax(x, dim=-1)
         return x

@@ -40,8 +40,8 @@ dataset_test = dset.EMNIST(
 n_data_train = len(dataset_train)
 n_data_test = len(dataset_test)
 batch_size = 2**9
-dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=4)
-dataloader_test = torch.utils.data.DataLoader(dataset_test, batch_size=batch_size, shuffle=True, num_workers=4)
+dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=2)
+dataloader_test = torch.utils.data.DataLoader(dataset_test, batch_size=batch_size, shuffle=True, num_workers=2)
 print(n_data_train)
 print(n_data_test)
 
@@ -51,36 +51,38 @@ betas = (0.9, 0.999)
 
 n_epochs = 50
 
-params = [7,5,3,1] # next evtl. n_epoch=200 
+params = [1024, 512, 128, 64] # next evtl. n_epoch=200 
 #modelnames = ["model_1619164701", "model_1619172429", "model_1619180155", "model_1619187884", "model_1619195610"]
 lossliste = torch.zeros(len(params), n_epochs).to(device)
 accliste_train = torch.zeros(len(params), n_epochs).to(device)
 accliste_test = torch.zeros(len(params), n_epochs).to(device)
+loss_func = torch.nn.CrossEntropyLoss()
 for param_idx, param in enumerate(params):
     starttime = dt.now().timestamp()
     model = VisualTransformer(n_patches=16,
-                                inner_dim=128,
+                                inner_dim=512, #128,
                                 mlp_groups=2, 
-                                transformer_depth=param, # Größe des Stapels an Transformern (werden nacheinander durchiteriert)
-                                attn_heads=16, # Anzahl Attention Heads
-                                dim_head=2*62, # eigene Dimension für Attention
-                                mlp_dim=64, # Dimension des MLPs im Transformer
+                                transformer_depth=3, # Größe des Stapels an Transformern (werden nacheinander durchiteriert)
+                                attn_heads=8, # Anzahl Attention Heads
+                                dim_head=64, #2*62, # eigene Dimension für Attention
+                                mlp_dim=param, # 64, # Dimension des MLPs im Transformer
                                 transformer_dropout=0.,#1, # Dropout des MLP im Transformer
-                                num_classes=num_classes # Anzahl Klassen
+                                num_classes=num_classes, # Anzahl Klassen
+                                use_mlp=True # benutze MLP im Encoder
                             ).to(device)
     #model = VisualTransformer(inner_dim=p, transformer_depth=1, dim_head=49, attn_heads=3, mlp_dim=49, num_classes=num_classes).to(device)
     #model = torch.load("models/"+modelnames[param_idx]+".pt")
     print(sum([params.numel() for params in model.parameters()]))
-    print("transformer_depth", param)
+    print("mlp_dim", param)
     
     with open("where.txt", "a+") as file:
-        file.write("--- transformer_depth "+str(param)+", "+ str(round(starttime)) + 70*"-"+"\n")
+        file.write("--- mlp_dim "+str(param)+", "+ str(round(starttime)) + 70*"-"+"\n")
     for epoch in range(start_epoch, n_epochs+start_epoch):
         if epoch==0: # warmup
             optimizer = Lamb(model.parameters(), lr=1e-5, betas=betas)
         if epoch==1:
             for g in optimizer.param_groups:
-                g["lr"]= 2e-4
+                g["lr"]= 1e-3
         epochstart = dt.now().timestamp()
         total_loss = 0
         acc_train = 0
@@ -95,7 +97,8 @@ for param_idx, param in enumerate(params):
             #labelsmat = F.one_hot(labels, num_classes=10).to(device)
             output = model(img)
             #loss = torch.sum((output-labelsmat)**2)
-            loss = F.cross_entropy(output, labels)
+            #loss = F.cross_entropy(output, labels)
+            loss = loss_func(output, labels)
             acc_train += torch.sum(torch.argmax(output, dim=-1)==labels)#.item()
 
             optimizer.zero_grad()
@@ -161,3 +164,8 @@ if plotstuff:
 torch.save(accliste_test, "auswertungen/accliste_test_{}.pt".format(round(starttime)))
 torch.save(accliste_train, "auswertungen/accliste_train_{}.pt".format(round(starttime)))
 torch.save(lossliste, "auswertungen/lossliste_{}.pt".format(round(starttime)))
+torch.save({"accliste_test": accliste_test, 
+            "accliste_train": accliste_train, 
+            "lossliste": lossliste}, 
+            "auswertungen/auswertung.pt"
+            )
